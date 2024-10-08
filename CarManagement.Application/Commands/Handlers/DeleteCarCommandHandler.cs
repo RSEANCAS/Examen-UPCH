@@ -1,4 +1,5 @@
-﻿using CarManagement.Application.DTOs;
+﻿using CarManagement.Application.Commands.Validators;
+using CarManagement.Application.DTOs;
 using CarManagement.Application.Helpers.Extensions;
 using CarManagement.Domain.Entities;
 using CarManagement.Domain.Interfaces.Repositories;
@@ -14,29 +15,41 @@ namespace CarManagement.Application.Commands.Handlers
     public class DeleteCarCommandHandler : IRequestHandler<DeleteCarCommandRequest, ResponseDTO<DeleteCarCommandResponse>>
     {
         private readonly ICarRepository _carRepository;
+        private readonly DeleteCarCommandValidator _deleteCarCommandValidator;
 
-        public DeleteCarCommandHandler(ICarRepository carRepository)
+        public DeleteCarCommandHandler(
+            ICarRepository carRepository,
+            DeleteCarCommandValidator deleteCarCommandValidator
+            )
         {
             _carRepository = carRepository;
+            _deleteCarCommandValidator = deleteCarCommandValidator;
         }
 
         public async Task<ResponseDTO<DeleteCarCommandResponse>> Handle(DeleteCarCommandRequest request, CancellationToken cancellationToken)
         {
             var response = new ResponseDTO<DeleteCarCommandResponse>();
 
-            var car = await _carRepository.FindByCarId(request.CarId);
+            var validate = _deleteCarCommandValidator.Validate(request);
+            response.Success = validate.IsValid;
 
-            if (car != null)
+            if (response.Success)
             {
-                car.Assign(request);
-                _carRepository.Update(car);
-                await _carRepository.SaveChangesAsync();
-                response.Success = true;
-                response.Result = car.MapPropertiesTo<DeleteCarCommandResponse>();
-                return response;
+                var car = await _carRepository.FindByCarId(request.CarId);
+
+                if (car != null)
+                {
+                    car.Assign(request);
+                    _carRepository.Update(car);
+                    await _carRepository.SaveChangesAsync();
+                    response.Success = true;
+                    response.Result = car.MapPropertiesTo<DeleteCarCommandResponse>();
+                    return response;
+                }
             }
 
-            response.Message = "Ocurrió un error";
+            response.Success = false;
+            response.Message = "Los datos enviados son inválidos";
             return response;
         }
     }

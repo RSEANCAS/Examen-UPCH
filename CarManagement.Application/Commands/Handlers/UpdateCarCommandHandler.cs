@@ -1,4 +1,5 @@
-﻿using CarManagement.Application.DTOs;
+﻿using CarManagement.Application.Commands.Validators;
+using CarManagement.Application.DTOs;
 using CarManagement.Application.Helpers.Extensions;
 using CarManagement.Domain.Entities;
 using CarManagement.Domain.Interfaces.Repositories;
@@ -14,26 +15,37 @@ namespace CarManagement.Application.Commands.Handlers
     public class UpdateCarCommandHandler : IRequestHandler<UpdateCarCommandRequest, ResponseDTO<UpdateCarCommandResponse>>
     {
         private readonly ICarRepository _carRepository;
+        private readonly UpdateCarCommandValidator _updateCarCommandValidator;
 
-        public UpdateCarCommandHandler(ICarRepository carRepository)
+        public UpdateCarCommandHandler(
+            ICarRepository carRepository,
+            UpdateCarCommandValidator updateCarCommandValidator
+            )
         {
             _carRepository = carRepository;
+            _updateCarCommandValidator = updateCarCommandValidator;
         }
 
         public async Task<ResponseDTO<UpdateCarCommandResponse>> Handle(UpdateCarCommandRequest request, CancellationToken cancellationToken)
         {
             var response = new ResponseDTO<UpdateCarCommandResponse>();
 
-            var car = await _carRepository.FindByCarId(request.CarId);
+            var validate = _updateCarCommandValidator.Validate(request);
+            response.Success = validate.IsValid;
 
-            if (car != null)
+            if (response.Success)
             {
-                car.Assign(request);
-                _carRepository.Update(car);
-                await _carRepository.SaveChangesAsync();
-                response.Success = true;
-                response.Result = car.MapPropertiesTo<UpdateCarCommandResponse>();
-                return response;
+                var car = await _carRepository.FindByCarId(request.CarId);
+
+                if (car != null)
+                {
+                    car.Assign(request);
+                    _carRepository.Update(car);
+                    await _carRepository.SaveChangesAsync();
+                    response.Success = true;
+                    response.Result = car.MapPropertiesTo<UpdateCarCommandResponse>();
+                    return response;
+                }
             }
 
             response.Message = "Ocurrió un error";

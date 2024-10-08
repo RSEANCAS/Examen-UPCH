@@ -29,6 +29,8 @@ builder.Services.AddMediatR(options => options.RegisterServicesFromAssemblies(As
 builder.Services.AddDbContext<CarsManagementDBContext>(options => options.UseSqlServer(configuration.GetConnectionString("CarsManagementDB")));
 builder.Services.AddScoped<ICarRepository, CarRepository>();
 builder.Services.AddScoped<CreateCarCommandValidator>();
+builder.Services.AddScoped<UpdateCarCommandValidator>();
+builder.Services.AddScoped<DeleteCarCommandValidator>();
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
